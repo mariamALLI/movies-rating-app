@@ -1,18 +1,20 @@
-
 // import { useState } from "react";
 import { useImmer } from "use-immer";
 
-import { Field, FieldLabel, FieldLegend, FieldSet } from "./ui/field";
+import { Field, FieldLabel, FieldLegend, FieldSet } from "../ui/field";
 
-import { Input } from "./ui/input";
-import { Textarea } from "./ui/textarea";
-import { Button } from "./ui/button";
-import { Checkbox } from "./ui/checkbox";
+import { Input } from "../ui/input";
+import { Textarea } from "../ui/textarea";
+import { Button } from "../ui/button";
+import { Checkbox } from "../ui/checkbox";
 import { useEffect, useRef } from "react";
 import type { MovieFormProps } from "@/lib/global-types";
 
-
-export default function MovieForm({ movie = null, onSave, onCancel }: MovieFormProps) {
+export default function MovieForm({
+  movie = null,
+  onSave,
+  onCancel,
+}: MovieFormProps) {
   const nameInputRef = useRef<HTMLInputElement>(null); // Ref to auto-focus the name input when the form opens
 
   const [movieFormData, setMovieFormData] = useImmer({
@@ -44,14 +46,16 @@ export default function MovieForm({ movie = null, onSave, onCancel }: MovieFormP
   }, []);
 
   // this function handles input changes for text, textarea, and checkbox fields.
-  const handleChangeInput = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, } = e.target;
-      const checked = (e.target as HTMLInputElement).checked; // for checkbox inputs
+  const handleChangeInput = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked; // for checkbox inputs
     setMovieFormData((draft) => {
       if (type === "checkbox") {
-        (draft [name as keyof typeof draft] as boolean) = checked;
-      }else {
-        (draft [name as keyof typeof draft] as string) = value;
+        (draft[name as keyof typeof draft] as boolean) = checked;
+      } else {
+        (draft[name as keyof typeof draft] as string) = value;
       }
     });
   };

@@ -3,14 +3,18 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
-import MovieCard from "@/components/movieItems";
-import MovieCardSkeleton from "@/components/movieCardSkeleton";
+import MovieCard from "@/components/movie/movieItems";
+import MovieCardSkeleton from "@/components/movie/movieCardSkeleton";
 import Modal from "@/components/modal";
-import MovieForm from "@/components/movieForm";
-import { Button } from "./ui/button";
+import MovieForm from "@/components/movie/movieForm";
+import { Button } from "../ui/button";
 import { Movie, MovieFormData } from "@/lib/global-types";
-import { fetchMovies, createMovie, updateMovie, deleteMovie } from "@/components/api/api";
-
+import {
+  fetchMovies,
+  createMovie,
+  updateMovie,
+  deleteMovie,
+} from "@/lib/movies-api";
 
 export default function MovieDisplay() {
   const queryClient = useQueryClient();
@@ -54,7 +58,7 @@ export default function MovieDisplay() {
     setShowMovieForm(true);
   };
 
-  const handleEditMovie = (movie: Omit<Movie, 'userId'>) => {
+  const handleEditMovie = (movie: Omit<Movie, "userId">) => {
     setCurrentMovie(movie as Movie);
     setShowMovieForm(true);
   };
@@ -76,13 +80,15 @@ export default function MovieDisplay() {
   const handleRatingChange = (id: string, rating: number) => {
     const movie = data?.items.find((m) => m.id === id);
     if (movie) {
-      updateMutation.mutate({ id,
-         name: movie.name, 
-         description: movie.description,
-         image: movie.image,
-         genres: movie.genres,
-         inTheaters: movie.inTheaters, 
-         rating: rating });
+      updateMutation.mutate({
+        id,
+        name: movie.name,
+        description: movie.description,
+        image: movie.image,
+        genres: movie.genres,
+        inTheaters: movie.inTheaters,
+        rating: rating,
+      });
     }
   };
 

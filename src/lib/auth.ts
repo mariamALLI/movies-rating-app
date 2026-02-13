@@ -1,14 +1,17 @@
-import { NextAuthOptions } from "next-auth/next";
+import { NextAuthOptions, Session } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import  prisma  from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import type {Adapter} from "next-auth/adapters";
+import { JWT } from "next-auth/jwt";
+import { User } from "@/generated/prisma/client";
 
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(prisma) as Adapter,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -46,29 +49,35 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid credentials");
         }
 
-        return user;
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
+        };
       },
     }),
   ],
   pages: {
     signIn: "/auth/signin",
-    signUp: "/auth/signup",
+    // signUp: "/auth/signup",
   },
   session: {
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user }: { token: JWT; user: User }) {
       if (user) {
         token.id = user.id;
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: { session: Session; token: JWT }) {
       if (token && session.user) {
         session.user.id = token.id as string;
       }
       return session;
     },
   },
+  secret: process.env.NEXTAUTH_SECRET,
 };
