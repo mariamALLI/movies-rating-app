@@ -36,8 +36,9 @@ export default function SignInPage() {
     }
   };
 
+  // handleOAuthSignIn is a function that takes a provider string (either "google" or "github") and calls the signIn function from next-auth/react with the provider and a callbackUrl of "/movies". This will redirect the user to the OAuth provider's sign-in page, and after successful authentication, the user will be redirected back to the "/movies" page.
   const handleOAuthSignIn = (provider: string) => {
-    signIn(provider, { callbackUrl: "/movies" });
+    signIn(provider, { callbackUrl: "/movies", redirect: true });
   };
 
   return (

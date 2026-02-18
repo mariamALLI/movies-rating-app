@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
-import MovieCard from "@/components/movie/movieItems";
+import MovieCard from "@/components/movie/movieCard";
 import MovieCardSkeleton from "@/components/movie/movieCardSkeleton";
 import Modal from "@/components/modal";
 import MovieForm from "@/components/movie/movieForm";
