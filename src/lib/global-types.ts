@@ -58,6 +58,7 @@ export interface MovieFormProps {
     image: string;
     genres: string[];
     inTheaters: boolean;
+    rating?: number;
   } | null;
   onSave: (movieData: {
     name: string;
@@ -65,6 +66,7 @@ export interface MovieFormProps {
     image: string;
     genres: string[];
     inTheaters: boolean;
+    rating?: number;
   }) => void;
   onCancel: () => void;
 }

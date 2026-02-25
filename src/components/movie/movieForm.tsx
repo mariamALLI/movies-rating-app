@@ -1,15 +1,31 @@
 "use client";
-// import { useState } from "react";
-import { useImmer } from "use-immer";
 
-import { Field, FieldLabel, FieldLegend, FieldSet } from "../ui/field";
+import { Field, FieldLabel } from "../ui/field";
 
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { MovieFormProps } from "@/lib/global-types";
+import Image from "next/image";
+import { Star } from "lucide-react";
+
+// Array of genres for the select input
+const genresOptions = [
+  "action",
+  "adventure",
+  "comedy",
+  "crime",
+  "drama",
+  "fantasy",
+  "horror",
+  "romance",
+  "sci-fi",
+  "thriller",
+  "animation",
+  "mystery",
+];
 
 export default function MovieForm({
   movie = null,
@@ -18,26 +34,36 @@ export default function MovieForm({
 }: MovieFormProps) {
   const nameInputRef = useRef<HTMLInputElement>(null); // Ref to auto-focus the name input when the form opens
 
-  const [movieFormData, setMovieFormData] = useImmer({
+  const [movieFormData, setMovieFormData] = useState({
     name: movie ? movie.name : "",
     description: movie ? movie.description : "",
     image: movie ? movie.image : "",
-    genres: movie ? movie.genres : [],
+    genres: movie ? movie.genres : ([] as string[]),
     inTheaters: movie ? movie.inTheaters : false,
+    rating: movie ? movie.rating : 0,
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  // Update form when movie prop changes (for editing existing movie)
+  // Update form when movie prop changes (for editing existing movie) with a slight delay to ensure state updates correctly when switching between movies in edit mode.
   useEffect(() => {
     if (movie) {
-      setMovieFormData({
+      const nextFormData = {
+        // Ensure we have default values for all fields to avoid uncontrolled input issues
         name: movie.name || "",
         description: movie.description || "",
         image: movie.image || "",
         genres: movie.genres || [],
         inTheaters: movie.inTheaters || false,
-      });
+        rating: movie.rating || 0,
+      };
+      const timeoutId = setTimeout(() => {
+        // This delay allows the form to reset properly when switching between different movies in edit mode, preventing stale state issues.
+        setMovieFormData(nextFormData);
+      }, 0);
+      return () => clearTimeout(timeoutId);
     }
-  }, [movie, setMovieFormData]);
+  }, [movie]);
 
   // Auto-focus the name input when the form opens
   useEffect(() => {
@@ -52,13 +78,10 @@ export default function MovieForm({
   ) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked; // for checkbox inputs
-    setMovieFormData((draft) => {
-      if (type === "checkbox") {
-        (draft[name as keyof typeof draft] as boolean) = checked;
-      } else {
-        (draft[name as keyof typeof draft] as string) = value;
-      }
-    });
+    setMovieFormData((prevState) => ({
+      ...prevState,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
   // this function handles files upload and converts it to a data URL.
@@ -67,23 +90,72 @@ export default function MovieForm({
     if (file && file.type.startsWith("image/")) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setMovieFormData((draft) => {
-          draft.image = reader.result as string;
-        });
+        setMovieFormData((prevState) => ({
+          ...prevState,
+          image: reader.result as string,
+        }));
       };
       reader.readAsDataURL(file);
     }
   };
 
   // this function handles form submission
-  const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     // use the controlled state instead of FormData
-    onSave(movieFormData);
+    setIsLoading(true);
+    setError("");
+    // onSave(movieFormData);
+    try {
+      const url = movie ? `/api/movies/${movie.name}` : "/api/movies";
+      const method = movie ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(movieFormData),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to save movie");
+      }
+
+      onSave(movieFormData);
+      onCancel(); // Close the form after saving
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Something went wrong");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // this function handles the genres selection and updates the form state accordingly. It allows multiple genres to be selected by checking the box.
+  const handleGenreChange = (genre: string, checked: boolean) => {
+    setMovieFormData((prevState) => ({
+      ...prevState,
+      genres: checked
+        ? [...prevState.genres, genre] // Add genre to the array if checked
+        : prevState.genres.filter((gr) => gr !== genre), // Remove genre from the array if unchecked
+    }));
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/*Title*/}
+      <h2 className="text-2xl font-bold mb-4">
+        {movie ? "Edit Movie" : "Add New Movie"}
+      </h2>
+
+      {/* display error message  */}
+      {error && (
+        <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">
+          {error}
+        </div>
+      )}
+
+      {/* Movie Name */}
       <Field>
         <FieldLabel htmlFor="name">Movie Name</FieldLabel>
         <Input
@@ -96,6 +168,8 @@ export default function MovieForm({
           required
         />
       </Field>
+
+      {/* Movie Description */}
       <Field>
         <FieldLabel htmlFor="description">Description</FieldLabel>
         <Textarea
@@ -103,13 +177,16 @@ export default function MovieForm({
           name="description"
           value={movieFormData.description || ""}
           onChange={handleChangeInput}
+          rows={4}
           required
         />
       </Field>
+
+      {/* Image Url */}
       <Field>
         <FieldLabel htmlFor="image">Image URL</FieldLabel>
         <Input
-          type="text"
+          type="url"
           id="image"
           name="image"
           value={movieFormData.image || ""}
@@ -131,46 +208,64 @@ export default function MovieForm({
         {movieFormData.image && (
           <div className="mt-2">
             <img
-              src={movieFormData.image}
+              src={movieFormData.image || "https://placehold.co/400x600?text=No+Image"}       
               alt="Preview"
               className="w-32 h-32 object-cover rounded border"
             />
           </div>
         )}
       </Field>
-      <FieldSet>
-        <FieldLegend>Genres (Hold Ctrl/Cmd to select multiple)</FieldLegend>
-        <select
-          multiple
-          id="genres"
-          name="genres"
-          value={movieFormData.genres || []}
-          onChange={(e) =>
-            setMovieFormData((draft) => {
-              draft.genres = Array.from(
-                e.target.selectedOptions,
-                (option) => option.value,
-              );
-            })
-          }
-          required
-          className="w-full border rounded p-2 min-h-[150px]"
-          size={8}
-        >
-          <option value="crime">Crime</option>
-          <option value="drama">Drama</option>
-          <option value="comedy">Comedy</option>
-          <option value="action">Action</option>
-          <option value="thriller">Thriller</option>
-          <option value="horror">Horror</option>
-          <option value="sci-fi">Sci-Fi</option>
-          <option value="romance">Romance</option>
-          <option value="adventure">Adventure</option>
-          <option value="animation">Animation</option>
-          <option value="fantasy">Fantasy</option>
-          <option value="mystery">Mystery</option>
-        </select>
-      </FieldSet>
+
+      {/* Genres */}
+      <Field>
+        <FieldLabel htmlFor="genres">Genres</FieldLabel>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {genresOptions.map((genre) => (
+            <div key={genre} className="flex items-center space-x-2">
+              <Checkbox
+                id={genre}
+                checked={movieFormData.genres.includes(genre)}
+                onCheckedChange={(checked) =>
+                  handleGenreChange(genre, checked as boolean)
+                }
+              />
+              <label
+                htmlFor={genre}
+                className="text-sm font-medium capitalize leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                {genre}
+              </label>
+            </div>
+          ))}
+        </div>
+      </Field>
+
+      {/*Movie Ratings */}
+      <Field>
+        <FieldLabel>Rating *</FieldLabel>
+        <div className="flex gap-2">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              onClick={() =>
+                setMovieFormData({ ...movieFormData, rating: star })
+              }
+              className="transition-transform hover:scale-110"
+            >
+              <Star
+                className={`h-8 w-8 ${
+                  star <= (movieFormData.rating ?? 0)
+                    ? "fill-yellow-400 text-yellow-400"
+                    : "fill-gray-200 text-gray-200"
+                }`}
+              />
+            </button>
+          ))}
+        </div>
+      </Field>
+
+      {/* In theaters */}
       <Field>
         <div className="flex items-center gap-2">
           <Checkbox
@@ -178,21 +273,33 @@ export default function MovieForm({
             name="inTheaters"
             checked={movieFormData.inTheaters}
             onCheckedChange={(checked) => {
-              setMovieFormData((draft) => {
-                draft.inTheaters = checked as boolean;
-              });
+              setMovieFormData((prevState) => ({
+                ...prevState,
+                inTheaters: checked as boolean,
+              }));
             }}
             onClick={(e) => e.stopPropagation()}
           />
           <FieldLabel htmlFor="inTheaters">In Theaters</FieldLabel>
         </div>
       </Field>
+
       <div className="flex justify-end gap-4">
-        <Button type="button" variant="secondary" onClick={onCancel}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onCancel}
+          className="cursor-pointer hover:bg-red-400 hover:text-white transition duration-200 scale-100 hover:scale-105"
+        >
           Cancel
         </Button>
-        <Button type="submit" variant="default">
-          Save
+        <Button
+          type="submit"
+          variant="default"
+          disabled={isLoading}
+          className="cursor-pointer hover:bg-green-600 hover:text-white transition duration-200 scale-100 hover:scale-105"
+        >
+          {isLoading ? "Saving..." : movie ? "Update Movie" : "Add Movie"}
         </Button>
       </div>
     </form>

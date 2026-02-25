@@ -19,7 +19,7 @@ import {
 export default function MovieDisplay() {
   const queryClient = useQueryClient();
   const [showMovieForm, setShowMovieForm] = useState(false);
-  const [currentMovie, setCurrentMovie] = useState<Movie | null>(null);
+  const [editingMovie, setEditingMovie] = useState<Movie | null>(null);
 
   // Query for fetching movies
   const { data, isLoading, error } = useQuery({
@@ -27,13 +27,13 @@ export default function MovieDisplay() {
     queryFn: fetchMovies,
   });
 
-  // Mutations
+  // Mutations for creating, updating, and deleting movies
   const createMutation = useMutation({
     mutationFn: createMovie,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["movies"] });
       setShowMovieForm(false);
-      setCurrentMovie(null);
+      setEditingMovie(null);
     },
   });
 
@@ -42,7 +42,7 @@ export default function MovieDisplay() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["movies"] });
       setShowMovieForm(false);
-      setCurrentMovie(null);
+      setEditingMovie(null);
     },
   });
 
@@ -54,18 +54,18 @@ export default function MovieDisplay() {
   });
 
   const handleAddNewMovie = () => {
-    setCurrentMovie(null);
+    setEditingMovie(null);
     setShowMovieForm(true);
   };
 
   const handleEditMovie = (movie: Omit<Movie, "userId">) => {
-    setCurrentMovie(movie as Movie);
+    setEditingMovie(movie as Movie);
     setShowMovieForm(true);
   };
 
   const handleSaveMovie = (movieData: MovieFormData) => {
-    if (currentMovie?.id) {
-      updateMutation.mutate({ id: currentMovie.id, ...movieData });
+    if (editingMovie?.id) {
+      updateMutation.mutate({ id: editingMovie.id, ...movieData });
     } else {
       createMutation.mutate(movieData);
     }
@@ -94,7 +94,7 @@ export default function MovieDisplay() {
 
   const handleCloseModal = () => {
     setShowMovieForm(false);
-    setCurrentMovie(null);
+    setEditingMovie(null);
   };
 
   if (error) {
@@ -127,11 +127,11 @@ export default function MovieDisplay() {
 
       <Modal
         isOpen={showMovieForm}
-        title={currentMovie?.id ? "Edit Movie" : "Add New Movie"}
+        title={editingMovie?.id ? "Edit Movie" : "Add New Movie"}
         onClose={handleCloseModal}
       >
         <MovieForm
-          movie={currentMovie}
+          movie={editingMovie}
           onSave={handleSaveMovie}
           onCancel={handleCloseModal}
         />
