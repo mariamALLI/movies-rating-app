@@ -57,13 +57,13 @@ import prisma from "@/lib/prisma";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } },
+ context:  { params: Promise<{id: string}> },
 ) {
   try {
     const session = await getServerSession(authOptions); // get current user session
 
     // if no user is logged in, return unauthorized response
-    if (!session?.user?.id) {
+    if (!session || !session.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -78,6 +78,9 @@ export async function PATCH(
     // parse the request body to get updated movie details like name, description, image, rating, genres, and inTheaters status
     const body = await request.json();
     const { name, description, image, rating, genres, inTheaters } = body;
+
+    // Await params before accessing properties
+    const params = await context.params;
 
     // update the movie in the database with the new details, but only if the movie belongs to the logged-in user
     const existingMovie = await prisma.movie.findUnique({
@@ -153,15 +156,18 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } },
+  context: {params: Promise<{id: string}>},
 ) {
   try {
     const session = await getServerSession(authOptions); // get current user session
 
     // if no user is logged in, return unauthorized user response
-    if (!session?.user?.id) {
+    if (!session || !session.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Await params before accessing properties
+    const params = await context.params;
 
     // find the user in the database using the email from the session
     const user = await prisma.user.findUnique({

@@ -9,13 +9,17 @@ export async function GET() {
     const session = await getServerSession(authOptions); // get current user session
 
     // if no user is logged in, return unauthorized response
-    if (!session?.user?.id) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    // find the user in the database using the email from the session
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email},
+    });
 
     // fetch movies from database that belong to the logged-in user, ordered by creation date in descending order
     const movies = await prisma.movie.findMany({
-      where: { userId: session.user.id },
+      where: { userId: user?.id },
       orderBy: { createdAt: "desc" },
     });
 
@@ -32,6 +36,7 @@ export async function GET() {
 // POST create new movie
 export async function POST(request: Request) {
   try {
+    console.log("POST /api/movies called"); // Log when the POST endpoint is hit for debugging purposes
     const session = await getServerSession(authOptions); // get current user session
 
     // if no user is logged in, return unauthorized response
@@ -41,6 +46,7 @@ export async function POST(request: Request) {
 
     // parse the request body to get movie details like name, description, image, rating, genres, and inTheaters status
     const body = await request.json();
+    console.log("creating movie with data:", body); // Log the movie data being created for debugging purposes
     const { name, description, image, rating, genres, inTheaters } = body;
 
     const movie = await prisma.movie.create({

@@ -8,7 +8,6 @@ import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { useEffect, useRef, useState } from "react";
 import type { MovieFormProps } from "@/lib/global-types";
-import Image from "next/image";
 import { Star } from "lucide-react";
 
 // Array of genres for the select input
@@ -44,6 +43,7 @@ export default function MovieForm({
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const isSubmitting = useRef(false); // Ref to track if the form is currently submitting to prevent multiple submissions
 
   // Update form when movie prop changes (for editing existing movie) with a slight delay to ensure state updates correctly when switching between movies in edit mode.
   useEffect(() => {
@@ -102,32 +102,40 @@ export default function MovieForm({
   // this function handles form submission
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
+// Prevent multiple submissions if the form is already submitting
+    if (isSubmitting.current || isLoading) {
+      return;
+    }
     // use the controlled state instead of FormData
+    isSubmitting.current = true; // Set the submitting ref to true to prevent multiple submissions
     setIsLoading(true);
     setError("");
-    // onSave(movieFormData);
+  
     try {
-      const url = movie ? `/api/movies/${movie.name}` : "/api/movies";
-      const method = movie ? "PATCH" : "POST";
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(movieFormData),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to save movie");
+      // validate ratings
+      if (!movieFormData.rating || movieFormData.rating < 1) {
+        throw new Error("Rating must be at least 1 star");
       }
 
-      onSave(movieFormData);
+      onSave(movieFormData); // Call the onSave callback with the form data to save the movie by the parent component
       onCancel(); // Close the form after saving
+
+      // Reset the submitting ref and loading state after the request is complete
+      if (!movie) {
+        setMovieFormData({
+          name: "",
+          description: "",
+          image: "",
+          genres: [],
+          inTheaters: false,
+          rating: 0,
+        });
+      }
     } catch (error) {
       setError(error instanceof Error ? error.message : "Something went wrong");
     } finally {
       setIsLoading(false);
+      isSubmitting.current = false; // Reset the submitting ref to allow future submissions
     }
   };
 
@@ -208,7 +216,8 @@ export default function MovieForm({
         {movieFormData.image && (
           <div className="mt-2">
             <img
-              src={movieFormData.image || "https://placehold.co/400x600?text=No+Image"}       
+              src={movieFormData.image || "https://placehold.co/400x600?text=No+Image"}
+
               alt="Preview"
               className="w-32 h-32 object-cover rounded border"
             />

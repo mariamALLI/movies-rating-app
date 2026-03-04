@@ -25,6 +25,8 @@ export default function MovieDisplay() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["movies"],
     queryFn: fetchMovies,
+    refetchOnWindowFocus: false, // prevent refetching when window regains focus
+    staleTime: 5 * 60 * 1000, // cache data for 5 minutes to reduce unnecessary API calls
   });
 
   // Mutations for creating, updating, and deleting movies
