@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
 import MovieCard from "@/components/movie/movieCard";
 import MovieCardSkeleton from "@/components/movie/movieCardSkeleton";
 import Modal from "@/components/modal";
 import MovieForm from "@/components/movie/movieForm";
 import { Button } from "../ui/button";
-import { Movie, MovieFormData } from "@/lib/global-types";
+import { Movie, MovieFormData, MovieDisplayProps } from "@/lib/global-types";
 import {
   fetchMovies,
   createMovie,
@@ -16,7 +15,13 @@ import {
   deleteMovie,
 } from "@/lib/movies-api";
 
-export default function MovieDisplay() {
+export default function MovieDisplay({
+  searchQuery = "",
+  activeFilters,
+  onMoviesLoaded,
+  onRegisterAddMovie,
+  onRegisterRemoveRatings,
+}: MovieDisplayProps) {
   const queryClient = useQueryClient();
   const [showMovieForm, setShowMovieForm] = useState(false);
   const [editingMovie, setEditingMovie] = useState<Movie | null>(null);
@@ -28,6 +33,20 @@ export default function MovieDisplay() {
     refetchOnWindowFocus: false, // prevent refetching when window regains focus
     staleTime: 5 * 60 * 1000, // cache data for 5 minutes to reduce unnecessary API calls
   });
+
+  // Notify parent about loaded movies (for stats)
+  const prevMoviesRef = useRef<Movie[]>([]);
+  useEffect(() => {
+    if (data?.items && onMoviesLoaded) {
+      // Only call if movies actually changed to avoid infinite loops
+      if (
+        JSON.stringify(data.items) !== JSON.stringify(prevMoviesRef.current)
+      ) {
+        prevMoviesRef.current = data.items;
+        onMoviesLoaded(data.items);
+      }
+    }
+  }, [data?.items, onMoviesLoaded]);
 
   // Mutations for creating, updating, and deleting movies
   const createMutation = useMutation({
@@ -55,11 +74,42 @@ export default function MovieDisplay() {
     },
   });
 
+  // register handlers with parent component (AppLayout -> Sidebar) for triggering add movie and remove ratings actions
+  
+  // This function will be called by the parent component to open the add movie form
   const handleAddNewMovie = () => {
     setEditingMovie(null);
     setShowMovieForm(true);
   };
 
+  // This function will be called by the parent component to remove all ratings from movies
+  const handleRemoveAllRatings = () => {
+      if (!data?.items) return;
+      data.items.forEach((movie) => {
+        updateMutation.mutate({
+          id: movie.id,
+          name: movie.name,
+          description: movie.description,
+          image: movie.image,
+          genres: movie.genres,
+          inTheaters: movie.inTheaters,
+          rating: 0,
+        });
+      });
+    };
+
+    useEffect(() => {
+      onRegisterAddMovie?.(handleAddNewMovie);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [onRegisterAddMovie]);
+
+    useEffect(() => {
+      onRegisterRemoveRatings?.(handleRemoveAllRatings);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [onRegisterRemoveRatings, data?.items]);
+
+
+   // Handlers for editing, deleting, and changing rating of movies 
   const handleEditMovie = (movie: Omit<Movie, "userId">) => {
     setEditingMovie(movie as Movie);
     setShowMovieForm(true);
@@ -94,10 +144,47 @@ export default function MovieDisplay() {
     }
   };
 
+// Handler to close the movie form modal
   const handleCloseModal = () => {
     setShowMovieForm(false);
     setEditingMovie(null);
   };
+
+
+  // client-side filtering based on search query and active filters
+    const filteredMovies = (data?.items ?? []).filter((movie) => {
+      // Search query
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (
+          !movie.name.toLowerCase().includes(q) &&
+          !movie.description.toLowerCase().includes(q)
+        ) {
+          return false;
+        }
+      }
+
+      // Genre filter
+      if (activeFilters?.genres) {
+        if (!movie.genres.includes(activeFilters.genres)) return false;
+      }
+
+      // In-theaters filter
+      if (
+        activeFilters?.inTheaters !== null &&
+        activeFilters?.inTheaters !== undefined
+      ) {
+        if (movie.inTheaters !== activeFilters.inTheaters) return false;
+      }
+
+      // Min rating filter
+      if (activeFilters?.minRating && activeFilters.minRating > 0) {
+        if ((movie.rating ?? 0) < activeFilters.minRating) return false;
+      }
+
+      return true;
+    });
+
 
   if (error) {
     return (
@@ -116,7 +203,7 @@ export default function MovieDisplay() {
 
   return (
     <div className="flex flex-col items-center justify-center gap-8">
-      <div className="w-full flex justify-center">
+      {/* <div className="w-full flex justify-center">
         <Button
           onClick={handleAddNewMovie}
           className="flex items-center gap-2 mb-4"
@@ -125,7 +212,7 @@ export default function MovieDisplay() {
           <Plus className="w-4 h-4" />
           Add Movie
         </Button>
-      </div>
+      </div> */}
 
       <Modal
         isOpen={showMovieForm}
@@ -146,14 +233,19 @@ export default function MovieDisplay() {
             <MovieCardSkeleton />
             <MovieCardSkeleton />
           </>
-        ) : data?.items.length === 0 ? (
+        ) : filteredMovies.length === 0 ? (
           <div className="col-span-full text-center py-12">
-            <p className="text-gray-500">
-              No movies yet. Add your first movie!
+            <p className="text-gray-500 dark:text-gray-400">
+              {searchQuery ||
+              activeFilters?.genres ||
+              activeFilters?.inTheaters !== null ||
+              (activeFilters?.minRating ?? 0) > 0
+                ? "No movies match your search/filters."
+                : "No movies yet. Add your first movie!"}
             </p>
           </div>
         ) : (
-          data?.items.map((movie: Movie) => (
+          filteredMovies.map((movie: Movie) => (
             <MovieCard
               key={movie.id}
               movie={{ ...movie, rating: movie.rating ?? 0 }}

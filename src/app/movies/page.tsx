@@ -1,11 +1,10 @@
 "use client";
 
-import { MovieDisplay } from "@/components/movie";
+// import { MovieDisplay } from "@/components/movie";
+import { AppLayout } from "@/components/layout";
 
 export default function MoviesPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <MovieDisplay />
-    </div>
+    <AppLayout/>
   );
 }

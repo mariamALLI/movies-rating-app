@@ -94,3 +94,41 @@ export interface ModalProps {
   onClose: () => void;
   children: React.ReactNode;
 }
+
+// Filter State for sidebar
+export interface FilterState {
+  genres: string; //empty string means no filter "all"
+  inTheaters: boolean | null; // null means no filter "all"
+  minRating: number; // 0 means "all"
+}
+
+// NavbarProps for Navbar component
+export interface NavbarProps {
+  onMenuToggle: () => void;
+  searchQuery: string;
+  onSearchChange: (q: string) => void;
+  totalMovies: number;
+  avgRating: number;
+  isDarkMode: boolean;
+  onThemeToggle: () => void;
+}
+
+// SidebarProps for Sidebar component
+export interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onAddMovie: () => void;
+  onRemoveRatings: () => void;
+  movies: Movie[];
+  filters: FilterState;
+  onFilterChange: (filters: FilterState) => void;
+}
+
+// MovieDisplayProps for MovieDisplay component
+export interface MovieDisplayProps {
+  searchQuery?: string;
+  activeFilters?: FilterState;
+  onMoviesLoaded?: (movies: Movie[]) => void;
+  onRegisterAddMovie?: (fn: () => void) => void;
+  onRegisterRemoveRatings?: (fn: () => void) => void;
+}
