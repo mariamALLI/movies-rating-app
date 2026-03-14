@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Github } from "lucide-react";
+import { signUpSchema, type SignUpInput } from "@/lib/validation/auth";
 
 export default function SignUpPage() {
   const router = useRouter(); //for navigation after successful signup
@@ -23,16 +24,28 @@ export default function SignUpPage() {
   // state for handling loading and error during signup process
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [validationErrors, setValidationErrors] = useState<Partial<Record<keyof SignUpInput, string>>>({});
 
   // function to handle form submission for signup
   const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault(); // prevent default form submission behavior
     setLoading(true); // set loading state to true when signup process starts
     setError(""); // reset error state before user input validation
+    setValidationErrors({}); // reset validation errors before user input validation
 
-    // validate that password and confirm password fields match
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
+    // validate user input using signUpSchema from validation/auth.ts
+    const parseResult = signUpSchema.safeParse(formData);
+
+    // if validation fails, set validation errors and return early
+    if (!parseResult.success){
+      const f = parseResult.error.flatten().fieldErrors;
+      setValidationErrors({
+        name: f.name?.[0],
+        email: f.email?.[0],
+        password: f.password?.[0],
+        confirmPassword: f.confirmPassword?.[0],
+      });
+      setError("Please fix the validation errors");
       setLoading(false);
       return;
     }
@@ -43,9 +56,9 @@ export default function SignUpPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
+          name: parseResult.data.name,
+          email: parseResult.data.email,
+          password: parseResult.data.password,
         }),
       });
 
@@ -57,8 +70,8 @@ export default function SignUpPage() {
 
       // Auto sign in after signup
       await signIn("credentials", {
-        email: formData.email,
-        password: formData.password,
+        email: parseResult.data.email,
+        password: parseResult.data.password,
         redirect: false,
       });
 
@@ -72,15 +85,18 @@ export default function SignUpPage() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const key = e.target.name as keyof SignUpInput;
+    setFormData({ ...formData, [key]: e.target.value });
+      // Clear validation error for the field being edited
+      setValidationErrors((prev) => ({...prev, [key]: undefined }));
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-black px-12 py-16">
+      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg dark:bg-[#240046]">
         <div>
           <h2 className="text-3xl font-bold text-center">Create Account</h2>
-          <p className="mt-2 text-center text-gray-600">
+          <p className="mt-2 text-center text-gray-600 dark:text-gray-400">
             Start rating your favorite movies
           </p>
         </div>
@@ -100,7 +116,9 @@ export default function SignUpPage() {
               value={formData.name}
               onChange={handleChange}
               required
+              className="mt-2"
             />
+            {validationErrors.name && <p className="mt-1 text-xs text-red-500">{validationErrors.name}</p>}
           </div>
 
           <div>
@@ -112,7 +130,9 @@ export default function SignUpPage() {
               value={formData.email}
               onChange={handleChange}
               required
+              className="mt-2"
             />
+            {validationErrors.email && <p className="mt-1 text-xs text-red-500">{validationErrors.email}</p>}
           </div>
 
           <div>
@@ -124,7 +144,9 @@ export default function SignUpPage() {
               value={formData.password}
               onChange={handleChange}
               required
+              className="mt-2"
             />
+            {validationErrors.password && <p className="mt-1 text-xs text-red-500">{validationErrors.password}</p>}
           </div>
 
           <div>
@@ -136,7 +158,9 @@ export default function SignUpPage() {
               value={formData.confirmPassword}
               onChange={handleChange}
               required
+              className="mt-2"
             />
+            {validationErrors.confirmPassword && <p className="mt-1 text-xs text-red-500">{validationErrors.confirmPassword}</p>}
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>

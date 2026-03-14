@@ -42,8 +42,8 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-black px-12 py-16">
+      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg dark:bg-[#240046]">
         <div>
           <h2 className="text-3xl font-bold text-center">Sign In</h2>
           <p className="mt-2 text-center text-gray-600">
@@ -66,6 +66,7 @@ export default function SignInPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              className="mt-2"
             />
           </div>
 
@@ -77,6 +78,7 @@ export default function SignInPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              className="mt-2"
             />
           </div>
 

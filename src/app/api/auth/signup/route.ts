@@ -1,18 +1,22 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import  prisma  from "@/lib/prisma";
+import { signUpApiSchema } from "@/lib/validation/auth";
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password } = await request.json();
+    const body = await request.json();
+    // Validate input using signUpApiSchema from validation/auth.ts
+    const parsedData = signUpApiSchema.safeParse(body);
 
-    // Validate input
-    if (!name || !email || !password) {
+    if(!parsedData.success){
       return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 },
-      );
+        {error: parsedData.error.flatten().fieldErrors},
+        {status: 400}
+      )
     }
+
+  const {name, email, password} = parsedData.data;
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({

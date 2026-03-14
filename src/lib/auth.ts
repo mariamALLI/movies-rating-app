@@ -5,7 +5,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import  prisma  from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-// import type {Adapter} from "next-auth/adapters";
+import { signInSchema } from "./validation/auth";
 
 
 export const authOptions: NextAuthOptions = {
@@ -27,29 +27,24 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Invalid credentials");
-        } // check if user exists in database with the email provided in credentials
+        const parsed = signInSchema.safeParse(credentials)
+        if (!parsed.success) return null;
+        
+        // find the user in the database using the email provided in credentials
+        const {email, password} = parsed.data;
 
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+          where: { email: email },
         });
-
         // if user does not exist or user does not have a password (i.e. user signed up with Google or GitHub) throw error
-        if (!user || !user.password) {
-          throw new Error("Invalid credentials");
-        }
+        if (!user || !user.password) return null;
 
         // compare the password provided in credentials with the hashed password stored in database using bcrypt
         const isCorrectPassword = await bcrypt.compare(
-          credentials.password,
-          user.password,
+          password, user.password,
         );
-
         // if password is incorrect throw error
-        if (!isCorrectPassword) {
-          throw new Error("Invalid credentials");
-        }
+        if (!isCorrectPassword) return null;
 
         // if everything is correct return the user object with the id, email, name and image properties
         return {
@@ -63,7 +58,6 @@ export const authOptions: NextAuthOptions = {
   ],
   pages: {
     signIn: "/auth/signin",
-    // signUp: "/auth/signup",
   },
   session: {
     strategy: "jwt",
