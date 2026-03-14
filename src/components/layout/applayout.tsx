@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import Navbar from "./navbar";
 import Sidebar from "./sidebar";
 import { MovieDisplay } from "@/components/movie";

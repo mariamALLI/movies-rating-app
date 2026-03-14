@@ -37,7 +37,6 @@ export default function Sidebar({
   onClose,
   onAddMovie,
   onRemoveRatings,
-  movies,
   filters,
   onFilterChange,
 }: SidebarProps) {
