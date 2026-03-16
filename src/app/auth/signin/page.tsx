@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Github } from "lucide-react";
+import { signInSchema, type SignInInput } from "@/lib/validation/auth";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -15,22 +16,28 @@ export default function SignInPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [validationErrors, setValidationErrors] = useState<Partial<Record<keyof SignInInput, string>>>({});
 
   const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setValidationErrors({});
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    // validate user input using signInSchema from validation/auth.ts
+    const parseResult = signInSchema.safeParse({ email, password });
 
-    if (result?.error) {
-      setError("Invalid email or password");
+    if (!parseResult.success){
+      const f = parseResult.error.flatten().fieldErrors;
+      setValidationErrors({
+        email: f.email?.[0],
+        password: f.password?.[0],
+      });
+      setError("Please fix the validation errors");
       setLoading(false);
-    } else {
+      return;
+    }else {
+      setValidationErrors({});
       router.push("/movies");
       router.refresh();
     }
@@ -65,9 +72,10 @@ export default function SignInPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
+          
               className="mt-2"
             />
+            {validationErrors.email && <p className="mt-1 text-xs text-red-500">{validationErrors.email}</p>}
           </div>
 
           <div>
@@ -80,6 +88,7 @@ export default function SignInPage() {
               required
               className="mt-2"
             />
+            {validationErrors.password && <p className="mt-1 text-xs text-red-500">{validationErrors.password}</p>}
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>

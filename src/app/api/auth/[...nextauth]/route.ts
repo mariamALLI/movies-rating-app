@@ -1,3 +1,4 @@
+// This file is the API route for NextAuth authentication. It initializes NextAuth with the authOptions defined in src/lib/auth.ts and exports the handler for both GET and POST requests.
 import NextAuth from "next-auth";
 import { authOptions } from "@/lib/auth";
 

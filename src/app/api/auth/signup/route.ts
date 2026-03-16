@@ -1,3 +1,4 @@
+// This file is the API route for user signup. It handles POST requests to create a new user in the database. It validates the input using the signUpApiSchema, checks if the email is already registered, hashes the password using bcrypt, and creates a new user record in the database using Prisma. It returns appropriate responses based on the success or failure of the operation.
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import  prisma  from "@/lib/prisma";
