@@ -152,7 +152,7 @@ export default function MovieForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/*Title*/}
-      <h2 className="text-2xl font-bold mb-4">
+      <h2 className="text-2xl font-bold mb-4 dark:text-white">
         {movie ? "Edit Movie" : "Add New Movie"}
       </h2>
 

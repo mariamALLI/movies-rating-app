@@ -1,5 +1,15 @@
 import { z} from "zod";
 
+const strongPassword = z
+.string()
+.min(6, "Password must be at least 6 characters")
+.max(100, "Password must be less than 100 characters")
+.regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+.regex(/[a-z]/, "Password must contain at least one lowercase letter")
+.regex(/[0-9]/, "Password must contain at least one number")
+.regex(/[^A-Za-z0-9]/, "Add at least one special character")
+.refine((v) => !/\s/.test(v), "Password must not contain spaces");
+
 export const signInSchema = z.object({
     email: z.email('Enter a valid email'),
     password: z.string().min(6, 'Password must be at least 6 characters')
@@ -9,7 +19,7 @@ export const signInSchema = z.object({
 export const signUpBaseSchema = z.object({
     name: z.string().min(3, 'Name must be at least 3 characters'),
     email: z.email('Enter a valid email'),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
+    password: strongPassword,
     confirmPassword: z.string().min(6, 'Confirm Password must be at least 6 characters'),
 })
 

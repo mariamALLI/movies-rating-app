@@ -77,9 +77,9 @@ export default function MovieCard({
               movie.rating > 0 ? " text-yellow-500" : "text-gray-400"
             }`}
           >
-            <Star className="h-8 w-8 fill-yellow-400 text-gray-800" />
+            <Star className="h-10 w-10 fill-yellow-400 text-gray-800" />
           </span>
-          <p className="absolute top-15 right-17">
+          <p className="absolute top-13 right-14 text-sm font-bold text-gray-800">
             {movie.rating > 0 ? movie.rating : "-"}
           </p>
         </div>
@@ -109,9 +109,7 @@ export default function MovieCard({
 
       {/* star rating */}
       <div className="flex gap-4 items-center mt-4">
-        <p>
-          Rating: 
-        </p>
+        <p>Rating:</p>
         {/* buttons for increasing or decreasing star rating */}
         <div className="flex gap-1">
           {[...Array(5)].map((_, star) => (
