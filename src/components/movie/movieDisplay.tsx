@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import MovieCard from "@/components/movie/movieCard";
 import MovieCardSkeleton from "@/components/movie/movieCardSkeleton";
@@ -77,14 +77,15 @@ export default function MovieDisplay({
   // register handlers with parent component (AppLayout -> Sidebar) for triggering add movie and remove ratings actions
   
   // This function will be called by the parent component to open the add movie form
-  const handleAddNewMovie = () => {
+  const handleAddNewMovie = useCallback(() => {
     setEditingMovie(null);
     setShowMovieForm(true);
-  };
+  }, []);
 
   // This function will be called by the parent component to remove all ratings from movies
-  const handleRemoveAllRatings = () => {
+  const handleRemoveAllRatings = useCallback(() => {
       if (!data?.items) return;
+
       data.items.forEach((movie) => {
         updateMutation.mutate({
           id: movie.id,
@@ -96,17 +97,15 @@ export default function MovieDisplay({
           rating: 0,
         });
       });
-    };
+    }, [data, updateMutation]);
 
     useEffect(() => {
       onRegisterAddMovie?.(handleAddNewMovie);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [onRegisterAddMovie]);
+    }, [onRegisterAddMovie, handleAddNewMovie]);
 
     useEffect(() => {
       onRegisterRemoveRatings?.(handleRemoveAllRatings);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [onRegisterRemoveRatings, data?.items]);
+    }, [onRegisterRemoveRatings, handleRemoveAllRatings]);
 
 
    // Handlers for editing, deleting, and changing rating of movies 
@@ -203,16 +202,6 @@ export default function MovieDisplay({
 
   return (
     <div className="flex flex-col items-center justify-center gap-8">
-      {/* <div className="w-full flex justify-center">
-        <Button
-          onClick={handleAddNewMovie}
-          className="flex items-center gap-2 mb-4"
-          disabled={isLoading}
-        >
-          <Plus className="w-4 h-4" />
-          Add Movie
-        </Button>
-      </div> */}
 
       <Modal
         isOpen={showMovieForm}

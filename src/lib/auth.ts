@@ -27,11 +27,11 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const parsed = signInSchema.safeParse(credentials)
+        const parsed = signInSchema.safeParse(credentials);
         if (!parsed.success) return null;
-        
+
         // find the user in the database using the email provided in credentials
-        const {email, password} = parsed.data;
+        const { email, password } = parsed.data;
 
         const user = await prisma.user.findUnique({
           where: { email: email },
@@ -40,9 +40,7 @@ export const authOptions: NextAuthOptions = {
         if (!user || !user.password) return null;
 
         // compare the password provided in credentials with the hashed password stored in database using bcrypt
-        const isCorrectPassword = await bcrypt.compare(
-          password, user.password,
-        );
+        const isCorrectPassword = await bcrypt.compare(password, user.password);
         // if password is incorrect throw error
         if (!isCorrectPassword) return null;
 
@@ -63,11 +61,78 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   // callbacks are used to modify the token and session objects before they are returned to the client
+  // Add callback to allow linked accounts (e.g., Google, GitHub) to sign in with matching emails
+  // callbacks: {
+  //   async signIn({ account, user, profile }) {
+  //     // Allow OAuth providers (Google, GitHub) to sign in with matching emails
+  //     if (account?.provider !== "credentials") {
+  //       // For OAuth providers, NextAuth will automatically link the account
+  //       // if an account with the same email exists in the database
+  //       return true;
+  //     }
+  //     return true;
+  //   },
+  //   async jwt({ token, user }) {
+  //     if (user) {
+  //       token.id = user.id;
+  //     }
+  //     return token;
+  //   },
+  //   async session({ session, token }) {
+  //     if (token && session.user) {
+  //       session.user.id = token.id as string;
+  //     }
+  //     return session;
+  //   },
+  // },
   callbacks: {
-    async jwt({ token, user }) {
+    async signIn({ account }) {
+      // This runs first - just allow OAuth providers to proceed
+      if (account?.provider !== "credentials") {
+        return true; // Allow OAuth, we'll create the link next
+      }
+      return true;
+    },
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
       }
+
+      // Create the Account link when user first signs in with OAuth
+      if (account) {
+        try {
+          const existingAccount = await prisma.account.findUnique({
+            where: {
+              provider_providerAccountId: {
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+              },
+            },
+          });
+
+          // If Account doesn't exist, create it to link the OAuth provider
+          if (!existingAccount) {
+            await prisma.account.create({
+              data: {
+                userId: user.id,
+                type: account.type,
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                access_token: account.access_token,
+                refresh_token: account.refresh_token,
+                expires_at: account.expires_at,
+                token_type: account.token_type,
+                scope: account.scope,
+                id_token: account.id_token,
+                session_state: account.session_state,
+              },
+            });
+          }
+        } catch (error) {
+          console.error("Error linking account:", error);
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {

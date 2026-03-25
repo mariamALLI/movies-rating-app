@@ -26,9 +26,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${playfairDisplay.variable} antialiased dark`}
+        className={`${geistSans.variable} ${playfairDisplay.variable} antialiased bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100 min-h-screen flex flex-col`}
       >
         {/* The provider is used to shield the children in order to prevent loading errors */}
         <NextAuthProvider>

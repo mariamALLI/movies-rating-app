@@ -17,9 +17,8 @@ export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-//   const [isDarkMode, setIsDarkMode] = useState(false);
   const [movies, setMovies] = useState<Movie[]>([]);
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
 
   // Refs to trigger actions in MovieDisplay
   const addMovieRef = useRef<() => void>(() => {});
@@ -33,20 +32,12 @@ export default function AppLayout() {
     removeRatingsRef.current = fn;
   }, []);
 
-//   // Sync dark mode with <html> class
-//   useEffect(() => {
-//     const stored = localStorage.getItem("darkMode");
-//     if (stored === "true") {
-//       setIsDarkMode(true);
-//       document.documentElement.classList.add("dark");
-//     }
-//   }, []);
 
   const handleThemeToggle = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
   };
 
-  const isDarkMode = theme === "dark";
+  const isDarkMode = resolvedTheme === "dark";
 
   // Compute stats from movies
   const totalMovies = movies.length;

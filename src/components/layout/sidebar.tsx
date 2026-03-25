@@ -261,6 +261,7 @@ export default function Sidebar({
                 alt={session.user.name || "User"}
                 fill
                 className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gray-300 dark:bg-zinc-600">
