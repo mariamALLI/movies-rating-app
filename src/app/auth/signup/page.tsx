@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Github } from "lucide-react";
 import { signUpSchema, type SignUpInput } from "@/lib/validation/auth";
 
+type SignupStep = 'form' | 'verification';
+
 export default function SignUpPage() {
-  const router = useRouter(); //for navigation after successful signup
+  // const router = useRouter(); //for navigation after successful signup
 
   // form state for collection of user data during signup
   const [formData, setFormData] = useState({
@@ -25,6 +27,12 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [validationErrors, setValidationErrors] = useState<Partial<Record<keyof SignUpInput, string>>>({});
+  // Just added states for managing signup steps and storing email for verification step
+  const [step, setStep] = useState<SignupStep>('form'); // state to manage signup steps
+  const [registrationEmail, setRegistrationEmail] = useState(""); // state to store email for verification step
+  const [resendLoading, setResendLoading] = useState(false); // state to manage loading state for resend verification email
+
+
 
   // function to handle form submission for signup
   const handleSubmit = async (e: React.SubmitEvent) => {
@@ -68,15 +76,11 @@ export default function SignUpPage() {
         throw new Error(data.error || "Something went wrong");
       }
 
-      // Auto sign in after signup
-      await signIn("credentials", {
-        email: parseResult.data.email,
-        password: parseResult.data.password,
-        redirect: false,
-      });
+      // If signup is successful, store the email for verification step and move to the next step
+      setRegistrationEmail(parseResult.data.email);
+      setStep('verification');
 
-      router.push("/movies");
-      router.refresh();
+   
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -84,12 +88,91 @@ export default function SignUpPage() {
     }
   };
 
+  // function to handle resending of verification email
+  const handleResendVerification = async () =>{
+    setResendLoading(true);
+    setError("");
+
+    try{
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({email: registrationEmail})
+      });
+
+      // check if response is not ok and throw error
+      if(!res.ok){
+        const data = await res.json();
+        throw new Error(data.error || "Failed to resend email");
+      }
+      setError("Verification email resent successfully. Please check your inbox.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setResendLoading(false);
+    }
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const key = e.target.name as keyof SignUpInput;
     setFormData({ ...formData, [key]: e.target.value });
       // Clear validation error for the field being edited
       setValidationErrors((prev) => ({...prev, [key]: undefined }));
   };
+
+    if (step === "verification") {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-black px-12 py-16">
+          <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg dark:bg-[#240046]">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold">Check Your Email</h2>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                We sent a verification link to:
+              </p>
+              <p className="font-semibold text-gray-900 dark:text-gray-100 mt-1">
+                {registrationEmail}
+              </p>
+            </div>
+
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
+              <p className="text-sm text-blue-800 dark:text-blue-300">
+                Click the link in the email to verify your account. The link
+                expires in 24 hours.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={handleResendVerification}
+                disabled={resendLoading}
+                className="w-full px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 border border-blue-600 dark:border-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/10 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {resendLoading
+                  ? "Sending..."
+                  : "Didn't receive the email? Resend"}
+              </button>
+
+              <button
+                onClick={() => setStep("form")}
+                className="w-full px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+              >
+                Back to signup
+              </button>
+            </div>
+
+            <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+              After verifying, you can{" "}
+              <Link
+                href="/auth/signin"
+                className="text-blue-600 hover:underline dark:text-blue-400"
+              >
+                sign in
+              </Link>
+            </p>
+          </div>
+        </div>
+      );
+    }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-black px-12 py-16">

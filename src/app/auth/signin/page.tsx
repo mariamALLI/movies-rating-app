@@ -36,10 +36,28 @@ export default function SignInPage() {
       setError("Please fix the validation errors");
       setLoading(false);
       return;
-    }else {
-      setValidationErrors({});
+    }
+
+    try {
+      // Actually call signIn to authenticate
+      const result = await signIn("credentials", {
+        email: parseResult.data.email,
+        password: parseResult.data.password,
+        redirect: false,
+      });
+
+      if (!result?.ok) {
+        setError(result?.error || "Sign in failed");
+        setLoading(false);
+        return;
+      }
+
+      // If successful, redirect to movies
       router.push("/movies");
       router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setLoading(false);
     }
   };
 

@@ -132,3 +132,8 @@ export interface MovieDisplayProps {
   onRegisterAddMovie?: (fn: () => void) => void;
   onRegisterRemoveRatings?: (fn: () => void) => void;
 }
+
+export interface VerifyEmailProps {
+  verificationUrl: string;
+  email: string;
+}

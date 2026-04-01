@@ -50,6 +50,8 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           image: user.image,
+          // Add emailVerified property to the user object to check if the user's email is verified before allowing them to sign in
+          emailVerified: user.emailVerified,
         };
       },
     }),
@@ -62,29 +64,7 @@ export const authOptions: NextAuthOptions = {
   },
   // callbacks are used to modify the token and session objects before they are returned to the client
   // Add callback to allow linked accounts (e.g., Google, GitHub) to sign in with matching emails
-  // callbacks: {
-  //   async signIn({ account, user, profile }) {
-  //     // Allow OAuth providers (Google, GitHub) to sign in with matching emails
-  //     if (account?.provider !== "credentials") {
-  //       // For OAuth providers, NextAuth will automatically link the account
-  //       // if an account with the same email exists in the database
-  //       return true;
-  //     }
-  //     return true;
-  //   },
-  //   async jwt({ token, user }) {
-  //     if (user) {
-  //       token.id = user.id;
-  //     }
-  //     return token;
-  //   },
-  //   async session({ session, token }) {
-  //     if (token && session.user) {
-  //       session.user.id = token.id as string;
-  //     }
-  //     return session;
-  //   },
-  // },
+
   callbacks: {
     async signIn({ account }) {
       // This runs first - just allow OAuth providers to proceed
@@ -96,6 +76,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
+        token.email = user.email;
       }
 
       // Create the Account link when user first signs in with OAuth
@@ -138,6 +119,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
+        session.user.email = token.email as string;
       }
       return session;
     },

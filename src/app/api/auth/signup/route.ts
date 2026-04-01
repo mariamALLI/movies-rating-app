@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import  prisma  from "@/lib/prisma";
 import { signUpApiSchema } from "@/lib/validation/auth";
+// Just Added
+import { sendVerificationEmail } from "@/lib/email";
+import crypto from "crypto";
 
 export async function POST(request: Request) {
   try {
@@ -34,7 +37,7 @@ export async function POST(request: Request) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create user
+    // Create user with unverified email and generate verification token
     const user = await prisma.user.create({
       data: {
         name,
@@ -42,6 +45,32 @@ export async function POST(request: Request) {
         password: hashedPassword,
       },
     });
+
+    // Generate email verification token (Just added this line of code)
+    const token = crypto.randomBytes(32).toString("hex");
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // Token valid for 24 hours
+
+    // Store token in the database (Just added this line of code)
+    await prisma.verificationToken.create({
+      data: {
+        identifier: email,
+        token,
+        expires,
+      }
+    })
+
+    // Send verification email (Just added this line of code)
+    try {
+      await sendVerificationEmail(email, token);
+    } catch (emailError) {
+      console.error('Email sending error:', emailError);
+      // Delete the user if email sending fails to avoid having unverified users in the database
+      await prisma.user.delete({where: {id: user.id}});
+      return NextResponse.json(
+        {error: "Failed to send verification email. Please try again."},
+        {status: 500}
+      )
+    }
 
     return NextResponse.json(
       { message: "User created successfully", userId: user.id },
