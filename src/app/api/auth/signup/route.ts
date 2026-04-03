@@ -7,6 +7,8 @@ import { signUpApiSchema } from "@/lib/validation/auth";
 import { sendVerificationEmail } from "@/lib/email";
 import crypto from "crypto";
 
+
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
