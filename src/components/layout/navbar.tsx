@@ -30,9 +30,9 @@ export default function Navbar({
 
       {/* Logo */}
       <div className="flex items-center gap-2 shrink-0">
-        <Film className="w-6 h-6 text-blue-600" />
+        <Film className="w-6 h-6 text-amber-600/20" />
         <span className="font-bold text-gray-900 dark:text-white text-base hidden sm:block">
-          Movie Rating App
+          My Movie Storage
         </span>
       </div>
 
