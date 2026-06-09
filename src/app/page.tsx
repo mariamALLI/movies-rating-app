@@ -1,9 +1,17 @@
-import SignUpPage from "./auth/signup/page";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import LandingPage from "@/components/landing/landing-page";
 
-export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-        <SignUpPage />
-    </div>
-  );
+export default async function Home() {
+  // Check if user is authenticated
+  const session = await getServerSession(authOptions);
+
+  // If user is authenticated, redirect to movies page
+  if (session?.user) {
+    redirect("/movies");
+  }
+
+  // Otherwise, show landing page
+  return <LandingPage />;
 }
